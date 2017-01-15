@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+	<head>
+		<title>WebGL Morph Animation - Sample01 -</title>
+		<meta charset="utf-8">
+		<style>
+			body {
+				background-color: #000000;
+				margin: 0;
+				overflow: hidden;
+			}
+        </style>
+	</head>
+
+	<body>
+		<script src="js/three.min.js"></script>
+		<script src="js/OrbitControls.js"></script>
+    <!--<script src="js/three.min.js"></script>
+    <script src="js/loaders/STLLoader.js"></script>-->
+    <script src="js/Detector.js"></script>
+    <script src="js/StereoEffect.js"></script>
+    <script src="js/DeviceOrientationControls.js"></script>
+    <script src="js/DetectScreenSize.js"></script>
+		<script>
+            (function(){
+
+                // 定数
+                var TOTAL_FRAMES = 60;
+                // 変数
+                var mesh;
+                var scene;
+                var camera;
+                var renderer;
+                var controls;
+                var lastKeyFrame = null;
+                var currentKeyFrame = 0;
+
+                init();
+
+                var hasOrientation = function(evt) {
+                    if (!evt.alpha) {
+                        return;
+                    }
+                    window.removeEventListener('deviceorientation', hasOrientation, false);
+                    controls = new THREE.DeviceOrientationControls( camera );
+                    controls.connect();
+                };
+
+                window.addEventListener('deviceorientation', hasOrientation, false);
+
+                function init() {
+                    var width = window.innerWidth;
+                    var height = window.innerHeight;
+                    // シーン
+                    scene = new THREE.Scene();
+                    scene.fog = new THREE.FogExp2(0x000000, 0.00035);
+                    // カメラ
+                    camera = new THREE.PerspectiveCamera(50, width/height, 1, 10000);
+                    camera.position.z = 1000;
+                    camera.position.y = 200;
+                    // 光源
+                    var directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+                    directionalLight.position.set(200, 200, 200);
+                    scene.add(directionalLight);
+                    // 環境光
+                    var ambientLight = new THREE.AmbientLight(0x999999);
+                    scene.add(ambientLight);
+                    // 地面
+                    var ground = new THREE.Mesh(new THREE.PlaneGeometry(10000, 10000, 1, 1), new THREE.MeshLambertMaterial({color: 0x333333}));
+                    ground.position.y = -200;
+                    ground.rotation.x = Math.PI / -2;
+                    scene.add(ground);
+                    // レンダラー
+                    renderer = new THREE.WebGLRenderer();
+                    renderer.setSize(width, height);
+
+                    effect = new THREE.StereoEffect( renderer );
+                    effect.separation = 0.2;
+                    effect.targetDistance = 50;
+                    effect.setSize( window.innerWidth, window.innerHeight );
+
+                    //
+                    controls = new THREE.OrbitControls(camera, renderer.domElement);
+                    controls.autoRotate = true;
+                    controls.autoRotateSpeed = -1.0;
+                    //
+                    document.body.appendChild(renderer.domElement);
+                    // モデル
+                    var loader = new THREE.JSONLoader();
+                    loader.load('models/monkey.json', function (geometry, materials) {
+                        for (var i = 0, l = materials.length; i < l; i++) {
+                            materials[i].morphTargets = true;
+                        }
+                        mesh = new THREE.MorphAnimMesh(geometry, new THREE.MeshFaceMaterial(materials));
+                        mesh.position.set(0, -200, 0);
+                        mesh.scale.set(100, 100, 100);
+                        scene.add(mesh);
+                        //
+                        animate();
+                    });
+                }
+
+                function animate() {
+                    requestAnimationFrame(animate);
+                    // モーフィングアニメーション
+                    //mesh.updateAnimation(30);
+                    lastKeyFrame = currentKeyFrame;
+                    currentKeyFrame ++;
+                    if (TOTAL_FRAMES < currentKeyFrame) {
+                        currentKeyFrame = 0;
+                    }
+                    mesh.morphTargetInfluences[lastKeyFrame] = 0;
+                    mesh.morphTargetInfluences[currentKeyFrame] = 1;
+                    //
+                    // renderer.render(scene, camera);
+                    effect.render( scene, camera );
+                    //
+                    controls.update();
+                }
+
+            })();
+		</script>
+	</body>
+</html>
